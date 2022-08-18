@@ -9,27 +9,27 @@ from flask_login import UserMixin, login_user, LoginManager, login_required, cur
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 from flask_gravatar import Gravatar
 from functools import wraps
+import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 ckeditor = CKEditor(app)
 Bootstrap(app)
 gravatar = Gravatar(app,
-    size=100,
-    rating='g',
-    default='retro',
-    force_default=False,
-    force_lower=False,
-    use_ssl=False,
-    base_url=None
-)
+                    size=100,
+                    rating='g',
+                    default='retro',
+                    force_default=False,
+                    force_lower=False,
+                    use_ssl=False,
+                    base_url=None
+                    )
 ##CONNECT TO DB
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
-
 
 
 ##CONFIGURE TABLES
@@ -59,6 +59,7 @@ class BlogPost(db.Model):
     body = db.Column(db.Text, nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
 
+
 class Comment(db.Model):
     __tablename__ = 'comments'
     id = db.Column(db.Integer, primary_key=True)
@@ -71,7 +72,6 @@ class Comment(db.Model):
     parent_post = relationship('BlogPost', back_populates='comments')
 
 
-
 def admin_only(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
@@ -79,7 +79,9 @@ def admin_only(func):
             return func(*args, **kwargs)
         else:
             return abort(403)
+
     return decorated_function
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -90,7 +92,8 @@ def load_user(user_id):
 def get_all_posts():
     posts = BlogPost.query.all()
 
-    return render_template("index.html", all_posts=posts, logged_in=current_user.is_authenticated, user_id=current_user.get_id())
+    return render_template("index.html", all_posts=posts, logged_in=current_user.is_authenticated,
+                           user_id=current_user.get_id())
 
 
 @app.route('/register', methods=['POST', 'GET'])
