@@ -1,4 +1,4 @@
-# phillip-blog
+# personal-blog
 Blog built with Flask
 https://phillips-blog.herokuapp.com/
 
