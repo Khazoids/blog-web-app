@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, abort
+from flask import Flask, render_template, redirect, url_for, flash, abort, request
 from flask_bootstrap import Bootstrap
 from flask_ckeditor import CKEditor
 from datetime import date
@@ -10,8 +10,15 @@ from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 from flask_gravatar import Gravatar
 from functools import wraps
 import os
+
+import smtplib
 import psycopg2
 
+# Environment variable setup
+login_email = os.environ.get('EMAIL')
+password = os.environ.get('PASSWORD')
+
+# Application configuration
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 ckeditor = CKEditor(app)
@@ -75,6 +82,7 @@ class Comment(db.Model):
 
 db.create_all()
 
+# Functions and Flask validation classes
 def admin_only(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
@@ -90,7 +98,20 @@ def admin_only(func):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+def send_email(name, from_email, to_email, message):
+    email_message = f"Subject: New Message\n\n" \
+                    f"Name: {name}\n" \
+                    f"Email: {from_email}\n" \
+                    f"Message: {message}"
+    with smtplib.SMTP_SSL("smtp.gmail.com") as connection:
+        connection.login(to_email, password)
+        connection.sendmail(
+            from_addr=from_email,
+            to_addrs=to_email,
+            msg=email_message
+        )
 
+# Routes ------------------------------------------------------------------------------------------------------
 @app.route('/')
 def get_all_posts():
     posts = BlogPost.query.all()
@@ -178,9 +199,13 @@ def about():
     return render_template("about.html", logged_in=current_user.is_authenticated)
 
 
-@app.route("/contact")
+@app.route("/contact", methods=['POST', 'GET'])
 def contact():
-    return render_template("contact.html", logged_in=current_user.is_authenticated)
+    if request.method == 'POST':
+        data = request.form
+        send_email(data['name'], data['email'], login_email, data['message'])
+        return render_template("contact.html", msg_sent=True)
+    return render_template("contact.html", logged_in=current_user.is_authenticated, msg_sent=False)
 
 
 @app.route("/new-post", methods=['POST', 'GET'])
@@ -217,7 +242,6 @@ def edit_post(post_id):
         post.title = edit_form.title.data
         post.subtitle = edit_form.subtitle.data
         post.img_url = edit_form.img_url.data
-        post.author = edit_form.author.data
         post.body = edit_form.body.data
         db.session.commit()
         return redirect(url_for("show_post", post_id=post.id))

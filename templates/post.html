@@ -34,25 +34,29 @@
 
 
 <!--           Comments Area -->
-          {{ wtf.quick_form(form, novalidate=True, button_map={'submit': 'primary'}) }}
           {{ ckeditor.load(pkg_type='standard') }}
+          {{ ckeditor.config(name='comment_text') }}
+          {{ wtf.quick_form(form, novalidate=True, button_map={'submit': 'primary'}) }}
 
-          {% for comment in post.comments %}
+
+
           <div class="col-lg-8 col-md-10 mx-auto comment">
+            {% for comment in post.comments %}
               <ul class="commentList">
                 <li>
                     <div class="commenterImage">
                       <img src="{{ comment.author.email | gravatar }} " />
                     </div>
+
                     <div class="commentText">
-                      <p>{{ comment.text | safe }}</p>
+                      {{ comment.text | safe }}
                       <span class="date sub-text">{{ comment.author.name }}</span>
+
                     </div>
                 </li>
               </ul>
             </div>
           {% endfor %}
-
           </div>
       </div>
     </div>
